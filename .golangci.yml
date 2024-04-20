@@ -1,0 +1,107 @@
+# golangci-lint run  -v --config .golangci.yml
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - typecheck
+    - unused
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - decorder
+    - errname
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - forcetypeassert
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - goimports
+    - gomnd
+    - lll
+    - makezero
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - nolintlint
+    - nosprintfhostport
+    - paralleltest
+    - prealloc
+    - promlinter
+    - reassign
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+    - whitespace
+    - wsl
+    - wastedassign
+    - gosec
+    - funlen
+    - gochecknoglobals
+    - dupl
+    - forbidigo
+    - dogsled
+    - dupl
+    - errcheck
+    - goconst
+    - gocritic
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - prealloc
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - whitespace
+    # Do not enable:
+    # - staticcheck (does not work with golangci-lint 1.46.2 and go 1.18.2)
+    # - gosec (not worth it in scope of this project)
+    # - gochecknoglobals (we know when it is ok to use globals)
+    # - gochecknoinits (we know when it is ok to use inits)
+    # - godot
+    # - exhaustruct
+    # - depguard
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  nakedret:
+    block-size: 4
+  nlreturn:
+    block-size: 4
+  govet:
+    check-shadowing: false
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+  wsl:
+    allow-cuddle-declarations: true
+    force-err-cuddling: true
+    allow-assign-and-anything: true
+  gocognit:
+    min-complexity: 160
+
+
+run:
+  timeout: 5m
