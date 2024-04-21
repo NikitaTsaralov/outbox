@@ -15,3 +15,7 @@ type OutboxStorageInterface interface {
 type OutboxPublisherInterface interface {
 	PublishEvents(ctx context.Context, events entity.Events) error
 }
+
+type MetricsInterface interface {
+	DecUnprocessedEventsCounter(count int)
+}

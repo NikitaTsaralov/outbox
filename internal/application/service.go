@@ -8,6 +8,7 @@ import (
 	"github.com/NikitaTsaralov/transactional-outbox/internal/command/event/batch_create"
 	"github.com/NikitaTsaralov/transactional-outbox/internal/command/event/create"
 	"github.com/NikitaTsaralov/transactional-outbox/internal/cron/worker"
+	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/metrics"
 	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/publisher/kafka"
 	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/storage/postgres"
 	trmsqlx "github.com/avito-tech/go-transaction-manager/sqlx"
@@ -24,17 +25,29 @@ type Service struct {
 }
 
 func NewService(
-	cfg *config.MessageRelay,
+	cfg *config.Config,
 	registry *prometheus.Registry,
 	dbImpl *sqlx.DB,
 	kafkaImpl *kgo.Client,
+	ctxGetter *trmsqlx.CtxGetter,
+	txManager *manager.Manager,
 ) *Service {
-	outboxStorage := postgres.NewStorage(dbImpl, trmsqlx.DefaultCtxGetter)
+	outboxStorage := postgres.NewStorage(cfg, dbImpl, ctxGetter)
 	outboxPublisher := kafka.NewPublisher(kafkaImpl)
+	outboxMetrics := metrics.NewMetrics(cfg.Metrics, registry)
 
 	return &Service{
-		worker:  worker.NewWorker(cfg, outboxStorage, outboxPublisher, manager.Must(trmsqlx.NewDefaultFactory(dbImpl))),
-		command: command.NewOutboxCommand(outboxStorage, manager.Must(trmsqlx.NewDefaultFactory(dbImpl))),
+		worker: worker.NewWorker(
+			cfg.MessageRelay,
+			outboxStorage,
+			outboxMetrics,
+			outboxPublisher,
+			// here we use our own transaction manager to hide worker inner logic
+			manager.Must(trmsqlx.NewDefaultFactory(dbImpl)),
+		),
+		// while here we use manager from args,
+		// that's because command needs to be wrapped in transaction from outside the package
+		command: command.NewOutboxCommand(outboxStorage, outboxMetrics, txManager),
 	}
 }
 

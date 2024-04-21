@@ -3,22 +3,26 @@ package postgres
 import (
 	"context"
 
+	"github.com/NikitaTsaralov/transactional-outbox/config"
 	"github.com/NikitaTsaralov/transactional-outbox/internal/domain/entity"
 	"github.com/NikitaTsaralov/transactional-outbox/internal/domain/valueobject"
 	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/storage/dto"
 	"github.com/NikitaTsaralov/utils/utils/trace"
 	txManager "github.com/avito-tech/go-transaction-manager/sqlx"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"go.opentelemetry.io/otel"
 )
 
 type Storage struct {
+	cfg       *config.Config
 	db        *sqlx.DB
 	ctxGetter *txManager.CtxGetter
 }
 
-func NewStorage(db *sqlx.DB, ctxGetter *txManager.CtxGetter) *Storage {
+func NewStorage(cfg *config.Config, db *sqlx.DB, ctxGetter *txManager.CtxGetter) *Storage {
 	return &Storage{
+		cfg:       cfg,
 		db:        db,
 		ctxGetter: ctxGetter,
 	}
@@ -55,13 +59,13 @@ func (s *Storage) BatchCreateEvents(ctx context.Context, events entity.Events) e
 	_, err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).ExecContext(
 		ctx,
 		queryBatchCreateEvent,
-		dtoEventBatch.IdempotencyKey,
-		dtoEventBatch.Payload,
-		dtoEventBatch.TraceID,
-		dtoEventBatch.TraceCarrier,
-		dtoEventBatch.Processed,
-		dtoEventBatch.CreatedAt,
-		dtoEventBatch.UpdatedAt,
+		pq.StringArray(dtoEventBatch.IdempotencyKey),
+		pq.StringArray(dtoEventBatch.Payload),
+		pq.StringArray(dtoEventBatch.TraceID),
+		pq.StringArray(dtoEventBatch.TraceCarrier),
+		pq.BoolArray(dtoEventBatch.Processed),
+		// dtoEventBatch.CreatedAt,
+		// dtoEventBatch.UpdatedAt,
 	)
 	if err != nil {
 		return trace.Wrapf(span, err, "Storage.CreateEvent.ExecContext(events: %v", events)
@@ -76,7 +80,12 @@ func (s *Storage) FetchUnprocessedEvents(ctx context.Context) (entity.Events, er
 
 	var dtoEvents dto.Events
 
-	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).SelectContext(ctx, &dtoEvents, queryFetchUnprocessedEvents)
+	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).SelectContext(
+		ctx,
+		&dtoEvents,
+		queryFetchUnprocessedEvents,
+		s.cfg.MessageRelay.BatchSize,
+	)
 	if err != nil {
 		return nil, trace.Wrapf(span, err, "Storage.FetchUnprocessedEvents.SelectContext()")
 	}

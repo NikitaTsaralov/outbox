@@ -1,11 +1,18 @@
 package batch_create
 
-import "github.com/NikitaTsaralov/transactional-outbox/internal/command/event/create"
+import (
+	"encoding/json"
+)
 
-type Command struct {
-	events []*create.Command
+type EventPayload struct {
+	IdempotencyKey string
+	Payload        json.RawMessage
 }
 
-func NewCommand(events []*create.Command) *Command {
-	return &Command{events: events}
+type Command struct {
+	Events []*EventPayload
+}
+
+func NewCommand(command *Command) *Command {
+	return &Command{Events: command.Events}
 }

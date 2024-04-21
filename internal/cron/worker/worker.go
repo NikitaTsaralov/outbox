@@ -14,6 +14,7 @@ import (
 type Worker struct {
 	cfg       *config.MessageRelay
 	storage   cron.OutboxStorageInterface
+	metrics   cron.MetricsInterface
 	publisher cron.OutboxPublisherInterface
 	exit      chan struct{}
 	ticker    *time.Ticker
@@ -23,12 +24,14 @@ type Worker struct {
 func NewWorker(
 	cfg *config.MessageRelay,
 	storage cron.OutboxStorageInterface,
+	metrics cron.MetricsInterface,
 	publisher cron.OutboxPublisherInterface,
 	txManager *manager.Manager,
 ) *Worker {
 	return &Worker{
 		cfg:       cfg,
 		storage:   storage,
+		metrics:   metrics,
 		publisher: publisher,
 		exit:      make(chan struct{}),
 		ticker:    time.NewTicker(cfg.Timeout * time.Millisecond),
@@ -81,6 +84,8 @@ func (w *Worker) Tick(ctx context.Context) {
 		if err != nil {
 			return err
 		}
+
+		w.metrics.DecUnprocessedEventsCounter(len(events))
 
 		return nil
 	})

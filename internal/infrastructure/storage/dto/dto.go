@@ -62,9 +62,9 @@ func (e Events) ToDomain() entity.Events {
 type EventBatch struct {
 	ID             []int64
 	IdempotencyKey []string
-	Payload        []json.RawMessage
+	Payload        []string
 	TraceID        []string
-	TraceCarrier   []json.RawMessage
+	TraceCarrier   []string
 	Processed      []bool
 	CreatedAt      []time.Time
 	UpdatedAt      []time.Time
@@ -74,9 +74,9 @@ func NewEventBatchFromDomain(events entity.Events) *EventBatch {
 	eventBatch := &EventBatch{
 		ID:             make([]int64, len(events)),
 		IdempotencyKey: make([]string, len(events)),
-		Payload:        make([]json.RawMessage, len(events)),
+		Payload:        make([]string, len(events)),
 		TraceID:        make([]string, len(events)),
-		TraceCarrier:   make([]json.RawMessage, len(events)),
+		TraceCarrier:   make([]string, len(events)),
 		Processed:      make([]bool, len(events)),
 		CreatedAt:      make([]time.Time, len(events)),
 		UpdatedAt:      make([]time.Time, len(events)),
@@ -85,9 +85,9 @@ func NewEventBatchFromDomain(events entity.Events) *EventBatch {
 	for i, event := range events {
 		eventBatch.ID[i] = event.ID
 		eventBatch.IdempotencyKey[i] = event.IdempotencyKey
-		eventBatch.Payload[i] = event.Payload
+		eventBatch.Payload[i] = string(event.Payload)
 		eventBatch.TraceID[i] = event.TraceID
-		eventBatch.TraceCarrier[i] = event.TraceCarrier
+		eventBatch.TraceCarrier[i] = string(event.TraceCarrier)
 		eventBatch.Processed[i] = event.Processed
 		eventBatch.CreatedAt[i] = event.CreatedAt
 		eventBatch.UpdatedAt[i] = event.UpdatedAt

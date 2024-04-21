@@ -14,10 +14,11 @@ type EventCommand struct {
 
 func NewOutboxCommand(
 	storage event.OutboxStorageInterface,
+	metrics event.MetricsInterface,
 	txManager *manager.Manager,
 ) *EventCommand {
 	return &EventCommand{
-		Create:      create.NewCommandHandler(storage, txManager),
-		BatchCreate: batch_create.NewCommandHandler(storage, txManager),
+		Create:      create.NewCommandHandler(storage, metrics, txManager),
+		BatchCreate: batch_create.NewCommandHandler(storage, metrics, txManager),
 	}
 }

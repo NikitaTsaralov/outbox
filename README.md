@@ -15,18 +15,45 @@ This package includes all outbox interaction
 ### Example
 
 ```go
-cfg := &config.MessageRelay{
-    Enabled:   true,
-    Timeout:   1000, // 1 s
-    BatchSize: 10,
+package main
+
+import (
+	"context"
+
+	"github.com/NikitaTsaralov/transactional-outbox/internal/application"
+	"github.com/NikitaTsaralov/transactional-outbox/internal/command/event/batch_create"
+	"github.com/NikitaTsaralov/transactional-outbox/internal/command/event/create"
+	"github.com/google/uuid"
+)
+
+func main() {
+	s := application.NewService(nil, nil, nil, nil)
+
+	err := s.CreateEvent(context.Background(), &create.Command{
+		IdempotencyKey: uuid.NewString(),
+		Payload:        []byte("{\"a\": \"b\"}"),
+	})
+	if err != nil {
+		return
+	}
+
+	err = s.BatchCreateEvent(context.Background(), &batch_create.Command{
+		{
+			IdempotencyKey: uuid.NewString(),
+			Payload:        []byte("{\"c\": \"d\"}"),
+		},
+		{
+			IdempotencyKey: uuid.NewString(),
+			Payload:        []byte("{\"e\": \"f\"}"),
+		},
+	})
+	if err != nil {
+		return
+	}
+
+	s.Start()
+	defer s.Stop()
 }
-
-// start message relay worker
-s := application.NewService(cfg, nil, nil, nil)
-s.Start()
-
-// graceful shutdown
-s.Stop()
 ```
 
 ### Project layout explanation. We use:
@@ -38,6 +65,7 @@ s.Stop()
 ### TODOs:
 
 * use `github.com/jackc/pgx/v5/pgxpool` instead of `github.com/jmoiron/sqlx`
+* replace `pq.Array` with `pgtype.Array`
 
 ### Acknowledgments:
 

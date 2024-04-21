@@ -1,7 +1,7 @@
 create table outbox
 (
     id              bigserial primary key,
-    idempotency_key text        not null, -- can b used to maintain event orders
+    idempotency_key text        not null unique, -- can b used to maintain event orders
     payload         jsonb       not null,
     trace_id        text,
     trace_carrier   jsonb       not null,

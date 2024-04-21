@@ -13,15 +13,18 @@ import (
 
 type CommandHandler struct {
 	storage   event.OutboxStorageInterface
+	metrics   event.MetricsInterface
 	txManager *manager.Manager
 }
 
 func NewCommandHandler(
 	storage event.OutboxStorageInterface,
+	metrics event.MetricsInterface,
 	txManager *manager.Manager,
 ) *CommandHandler {
 	return &CommandHandler{
 		storage:   storage,
+		metrics:   metrics,
 		txManager: txManager,
 	}
 }
@@ -42,6 +45,8 @@ func (h *CommandHandler) Execute(ctx context.Context, command *Command) error {
 	if err != nil {
 		return err
 	}
+
+	h.metrics.IncUnprocessedEventsCounter(1)
 
 	return nil
 }
