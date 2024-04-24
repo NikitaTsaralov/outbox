@@ -1,35 +1,11 @@
 package postgres
 
 const (
-	queryCreateEvent = `
-		insert
-		  into outbox
-			(idempotency_key, payload, trace_id, trace_carrier, processed, created_at, updated_at)
-		  values
-			($1, $2, $3, $4, $5, $6, $7);`
+	queryCreate = `insert into some_table (name, ack_policy) values ($1, $2) returning id`
 
-	queryBatchCreateEvent = `
-		insert
-		  into outbox
-			(idempotency_key, payload, trace_id, trace_carrier, processed)
-		select *
-		  from unnest(
-				   $1::text[],
-				   $2::jsonb[],
-				   $3::text[],
-				   $4::jsonb[],
-				   $5::bool[]
-			   ) as t (
-			idempotency_key, payload, trace_id, trace_carrier, processed
-			);`
+	queryUpdate = `update some_table set name = $1, ack_policy = $2 where id = $3`
 
-	queryFetchUnprocessedEvents = `
-		select id, payload, created_at from outbox
-		where processed = false
-		order by created_at
-		limit $1 for update skip locked;`
+	queryGetByID = `select * from some_table where id = $1`
 
-	queryMarkEventsAsProcessed = `
-		update outbox set processed = true
-		where outbox.id = any($1);`
+	queryFetch = `select * from some_table`
 )

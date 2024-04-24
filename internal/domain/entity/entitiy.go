@@ -1,28 +1,29 @@
 package entity
 
-import (
-	"encoding/json"
-	"time"
+import "github.com/google/uuid"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/domain/valueobject"
-	"github.com/samber/lo"
-)
-
-type Event struct {
-	ID             int64
-	IdempotencyKey string
-	Payload        json.RawMessage
-	TraceID        string
-	TraceCarrier   json.RawMessage
-	Processed      bool
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+type Entity struct {
+	id    uuid.UUID
+	value string
 }
 
-type Events []*Event
-
-func (e Events) IDs() valueobject.IDs {
-	return lo.Map(e, func(item *Event, _ int) valueobject.ID {
-		return valueobject.ID(item.ID)
-	})
+func (e *Entity) ID() uuid.UUID {
+	return e.id
 }
+
+func (e *Entity) Value() string {
+	return e.value
+}
+
+func NewEntity(opts ...OrderOption) *Entity {
+	entity := &Entity{}
+
+	for _, opt := range opts {
+		opt(entity)
+	}
+
+	return entity
+
+}
+
+type Entities []*Entity

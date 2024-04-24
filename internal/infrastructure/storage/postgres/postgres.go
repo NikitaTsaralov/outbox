@@ -3,14 +3,14 @@ package postgres
 import (
 	"context"
 
-	"github.com/NikitaTsaralov/transactional-outbox/config"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/domain/entity"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/domain/valueobject"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/storage/dto"
+	"layout-example/config"
+	"layout-example/internal/domain/entity"
+	"layout-example/internal/infrastructure/storage/dto"
+
 	"github.com/NikitaTsaralov/utils/utils/trace"
 	txManager "github.com/avito-tech/go-transaction-manager/sqlx"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 	"go.opentelemetry.io/otel"
 )
 
@@ -28,79 +28,58 @@ func NewStorage(cfg *config.Config, db *sqlx.DB, ctxGetter *txManager.CtxGetter)
 	}
 }
 
-func (s *Storage) CreateEvent(ctx context.Context, event *entity.Event) error {
-	ctx, span := otel.Tracer("").Start(ctx, "Storage.CreateEvent")
+func (s *Storage) Create(ctx context.Context, entity *entity.Entity) (int64, error) {
+	ctx, span := otel.Tracer("").Start(ctx, "pgrepo.Entity.Create")
 	defer span.End()
 
-	_, err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).ExecContext(
-		ctx,
-		queryCreateEvent,
-		event.IdempotencyKey,
-		event.Payload,
-		event.TraceID,
-		event.TraceCarrier,
-		event.Processed,
-		event.CreatedAt,
-		event.UpdatedAt,
-	)
+	var id int64
+
+	dtoEntity := dto.NewEntityFromDomain(entity)
+
+	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).GetContext(ctx, &id, queryCreate, dtoEntity)
 	if err != nil {
-		return trace.Wrapf(span, err, "Storage.CreateEvent.ExecContext(event: %v)", event)
+		return 0, trace.Wrapf(span, err, "pgrepo.Entity.Create.GetContext(args: %#v)", entity)
+	}
+
+	return id, nil
+}
+
+func (s *Storage) Update(ctx context.Context, entity *entity.Entity) error {
+	ctx, span := otel.Tracer("").Start(ctx, "pgrepo.Entity.Update")
+	defer span.End()
+
+	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).GetContext(ctx, nil, queryUpdate)
+	if err != nil {
+		return trace.Wrapf(span, err, "pgrepo.Entity.Update.GetContext(args: %#v)", entity)
 	}
 
 	return nil
 }
 
-func (s *Storage) BatchCreateEvents(ctx context.Context, events entity.Events) error {
-	ctx, span := otel.Tracer("").Start(ctx, "Storage.CreateEvent")
+func (s *Storage) GetByID(ctx context.Context, id uuid.UUID) (*entity.Entity, error) {
+	ctx, span := otel.Tracer("").Start(ctx, "pgrepo.Entity.GetByID")
 	defer span.End()
 
-	dtoEventBatch := dto.NewEventBatchFromDomain(events)
+	var entity dto.Entity
 
-	_, err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).ExecContext(
-		ctx,
-		queryBatchCreateEvent,
-		pq.StringArray(dtoEventBatch.IdempotencyKey),
-		pq.StringArray(dtoEventBatch.Payload),
-		pq.StringArray(dtoEventBatch.TraceID),
-		pq.StringArray(dtoEventBatch.TraceCarrier),
-		pq.BoolArray(dtoEventBatch.Processed),
-		// dtoEventBatch.CreatedAt,
-		// dtoEventBatch.UpdatedAt,
-	)
+	err := s.db.GetContext(ctx, &entity, queryGetByID, id)
 	if err != nil {
-		return trace.Wrapf(span, err, "Storage.CreateEvent.ExecContext(events: %v", events)
+		return nil, trace.Wrapf(span, err, "pgrepo.Entity.GetByID.GetContext(id: %s)", id.String())
 	}
 
-	return nil
+	return entity.ToDomain(), nil
 }
 
-func (s *Storage) FetchUnprocessedEvents(ctx context.Context) (entity.Events, error) {
-	ctx, span := otel.Tracer("").Start(ctx, "Storage.FetchUnprocessedEvents")
+func (s *Storage) Fetch(ctx context.Context) (entity.Entities, error) {
+	ctx, span := otel.Tracer("").Start(ctx, "pgrepo.Entity.Fetch")
 	defer span.End()
 
-	var dtoEvents dto.Events
+	var entities dto.Entities
 
-	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).SelectContext(
-		ctx,
-		&dtoEvents,
-		queryFetchUnprocessedEvents,
-		s.cfg.MessageRelay.BatchSize,
-	)
+	err := s.db.SelectContext(ctx, &entities, queryFetch)
 	if err != nil {
-		return nil, trace.Wrapf(span, err, "Storage.FetchUnprocessedEvents.SelectContext()")
+		return nil, trace.Wrapf(span, err, "pgrepo.Entity.Fetch.SelectContext()")
 	}
 
-	return dtoEvents.ToDomain(), err
-}
-
-func (s *Storage) MarkEventsAsProcessed(ctx context.Context, ids valueobject.IDs) error {
-	ctx, span := otel.Tracer("").Start(ctx, "Storage.MarkEventsAsProcessed")
-	defer span.End()
-
-	_, err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).ExecContext(ctx, queryMarkEventsAsProcessed, ids)
-	if err != nil {
-		return trace.Wrapf(span, err, "Storage.MarkEventsAsProcessed.ExecContext(ids: %v)", ids)
-	}
-
-	return nil
+	return entities.ToDomain(), nil
 }

@@ -1,24 +1,24 @@
 package command
 
 import (
-	"github.com/NikitaTsaralov/transactional-outbox/internal/command/event"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/command/event/batch_create"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/command/event/create"
+	"layout-example/internal/command/entity_name"
+	"layout-example/internal/command/entity_name/create"
+	"layout-example/internal/command/entity_name/update"
+
 	"github.com/avito-tech/go-transaction-manager/trm/manager"
 )
 
-type EventCommand struct {
-	Create      *create.CommandHandler
-	BatchCreate *batch_create.CommandHandler
+type EntityCommand struct {
+	Create *create.CommandHandler
+	Update *update.CommandHandler
 }
 
 func NewOutboxCommand(
-	storage event.OutboxStorageInterface,
-	metrics event.MetricsInterface,
+	storage entity_name.StorageInterface,
 	txManager *manager.Manager,
-) *EventCommand {
-	return &EventCommand{
-		Create:      create.NewCommandHandler(storage, metrics, txManager),
-		BatchCreate: batch_create.NewCommandHandler(storage, metrics, txManager),
+) *EntityCommand {
+	return &EntityCommand{
+		Create: create.NewCommandHandler(storage, txManager),
+		Update: update.NewCommandHandler(storage, txManager),
 	}
 }

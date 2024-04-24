@@ -1,4 +1,4 @@
-module github.com/NikitaTsaralov/transactional-outbox
+module layout-example
 
 go 1.22.2
 
