@@ -24,18 +24,18 @@ func NewServer(cfg *config.Config) *Server {
 func (s *Server) Start() {
 	logger.Infof("starting...")
 
-	s.initDB()
-	s.initJaeger()
+	s.startDB()
+	s.startJaeger()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	s.closeDB()
-	s.closeJaeger(ctx)
+	s.stopDB()
+	s.stopJaeger(ctx)
 
 	return nil
 }
 
-func (s *Server) initDB() {
+func (s *Server) startDB() {
 	var err error
 
 	s.postgres = postgres.New(s.cfg.Postgres)
@@ -46,7 +46,7 @@ func (s *Server) initDB() {
 	logger.Infof("postgres connected, status: %#v", s.postgres.Stats())
 }
 
-func (s *Server) closeDB() {
+func (s *Server) stopDB() {
 	err := s.postgres.Close()
 	if err != nil {
 		logger.Errorf("can't close postgres properly, err: %s", err.Error())
@@ -55,13 +55,13 @@ func (s *Server) closeDB() {
 	logger.Info("postgres closed")
 }
 
-func (s *Server) initJaeger() {
+func (s *Server) startJaeger() {
 	s.tracer = jaeger.Start(s.cfg.Jaeger)
 
 	logger.Info("jaeger started")
 }
 
-func (s *Server) closeJaeger(ctx context.Context) {
+func (s *Server) stopJaeger(ctx context.Context) {
 	err := s.tracer.Stop(ctx)
 	if err != nil {
 		logger.Errorf("can't close jaeger properly, err: %s", err.Error())
