@@ -3,9 +3,9 @@ package postgres
 import (
 	"context"
 
-	"layout-example/config"
-	"layout-example/internal/domain/entity"
-	"layout-example/internal/infrastructure/storage/dto"
+	"cqrs-layout-example/config"
+	"cqrs-layout-example/internal/domain/entity"
+	"cqrs-layout-example/internal/infrastructure/storage/dto"
 
 	"github.com/NikitaTsaralov/utils/utils/trace"
 	txManager "github.com/avito-tech/go-transaction-manager/sqlx"

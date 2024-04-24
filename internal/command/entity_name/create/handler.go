@@ -3,8 +3,8 @@ package create
 import (
 	"context"
 
-	"layout-example/internal/command/entity_name"
-	"layout-example/internal/domain/entity"
+	"cqrs-layout-example/internal/command/entity_name"
+	"cqrs-layout-example/internal/domain/entity"
 
 	"github.com/NikitaTsaralov/utils/utils/trace"
 	"github.com/avito-tech/go-transaction-manager/trm/manager"

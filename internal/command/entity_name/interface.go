@@ -3,7 +3,7 @@ package entity_name
 import (
 	"context"
 
-	"layout-example/internal/domain/entity"
+	"cqrs-layout-example/internal/domain/entity"
 )
 
 type StorageInterface interface {

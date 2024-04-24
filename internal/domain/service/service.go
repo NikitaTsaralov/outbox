@@ -1,8 +1,8 @@
 package service
 
 import (
-	"layout-example/internal/command"
-	"layout-example/internal/query"
+	"cqrs-layout-example/internal/command"
+	"cqrs-layout-example/internal/query"
 )
 
 type OrderService struct {

@@ -1,9 +1,9 @@
 package command
 
 import (
-	"layout-example/internal/command/entity_name"
-	"layout-example/internal/command/entity_name/create"
-	"layout-example/internal/command/entity_name/update"
+	"cqrs-layout-example/internal/command/entity_name"
+	"cqrs-layout-example/internal/command/entity_name/create"
+	"cqrs-layout-example/internal/command/entity_name/update"
 
 	"github.com/avito-tech/go-transaction-manager/trm/manager"
 )

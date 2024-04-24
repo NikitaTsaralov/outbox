@@ -1,9 +1,9 @@
 package query
 
 import (
-	"layout-example/internal/query/entity_name"
-	"layout-example/internal/query/entity_name/fetch"
-	"layout-example/internal/query/entity_name/get_by_id"
+	"cqrs-layout-example/internal/query/entity_name"
+	"cqrs-layout-example/internal/query/entity_name/fetch"
+	"cqrs-layout-example/internal/query/entity_name/get_by_id"
 )
 
 type EntityQueries struct {

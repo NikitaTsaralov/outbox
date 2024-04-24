@@ -1,1 +1,1 @@
-# layout-example
+# cqrs-layout-example

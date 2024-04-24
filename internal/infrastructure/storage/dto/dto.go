@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"layout-example/internal/domain/entity"
+	"cqrs-layout-example/internal/domain/entity"
 
 	"github.com/google/uuid"
 	"github.com/samber/lo"

@@ -3,8 +3,8 @@ package get_by_id
 import (
 	"context"
 
-	"layout-example/internal/domain/entity"
-	"layout-example/internal/query/entity_name"
+	"cqrs-layout-example/internal/domain/entity"
+	"cqrs-layout-example/internal/query/entity_name"
 
 	"go.opentelemetry.io/otel"
 )
