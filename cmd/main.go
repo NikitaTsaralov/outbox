@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -13,8 +13,6 @@ import (
 	loader "github.com/NikitaTsaralov/utils/config"
 	"github.com/NikitaTsaralov/utils/logger"
 )
-
-const path = "config/config.yml"
 
 var (
 	exit       = make(chan bool)
