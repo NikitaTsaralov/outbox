@@ -4,8 +4,7 @@ go 1.22.2
 
 require (
 	github.com/NikitaTsaralov/utils/config v0.0.0-20240421100330-56c35c72c25c
-	github.com/NikitaTsaralov/utils/connectors/jaeger v0.0.0-20240421100330-56c35c72c25c
-	github.com/NikitaTsaralov/utils/connectors/postgres v0.0.0-20240421100330-56c35c72c25c
+	github.com/NikitaTsaralov/utils/connectors/jaeger v0.0.0-20240429062645-0d044b9be345
 	github.com/NikitaTsaralov/utils/logger v0.0.0-20240420165255-564d055413ee
 	github.com/NikitaTsaralov/utils/utils/trace v0.0.0-20240420125942-b517e50783e6
 	github.com/avito-tech/go-transaction-manager v1.5.0
@@ -18,6 +17,7 @@ require (
 require (
 	github.com/IBM/sarama v1.43.0 // indirect
 	github.com/NikitaTsaralov/utils/connectors/logger v0.0.0-20240224192111-a9cd326d8bd8 // indirect
+	github.com/NikitaTsaralov/utils/connectors/postgres v0.0.0-20240427080411-c4bc619c8f26 // indirect
 	github.com/Shopify/sarama v1.38.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/eapache/go-resiliency v1.6.0 // indirect
