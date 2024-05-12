@@ -65,7 +65,7 @@ func main() {
 	}
 
 	// run message relay
-	//client.RunMessageRelay(ctx)
+	client.RunMessageRelay(ctx)
 }
 
 func connect() (*sqlx.DB, *kgo.Client) {
