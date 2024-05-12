@@ -1,45 +1,9 @@
-# cqrs-layout-example
+# github.com/NikitaTsaralov/transactional-outbox
 
-![cqrs](./assets/cqrs.png)
+![cqrs](./assets/ReliablePublication.png)
 
 ### Overview
 
-> CQRS stands for Command and Query Responsibility Segregation, a pattern that separates read and update operations for a data store.
+> Transactional outbox is a pattern that ensures that messages are delivered to a message broker in a reliable way.
 
-This project is example of cqrs pattern implementation on golang.
-Can be used as project starter for crud based applications.
-You just need to replace entity_name with your own domain entity
-
-### Layout features
-
-* Hexagonal architecture
-* DTO (Data Transfer Object) for request and response
-* DDD (Domain Driven Design) for domain entity
-* CQRS (Command Query Responsibility Segregation) for separation of read and write operation (replication support)
-
-### Config example
-
-To use this example you need to create `./config/config.yaml` and fill it with:
-
-```yaml
-Postgres:
-  Host: localhost
-  Port: 5432
-  User: root
-  Password: dev
-  DBName: postgres
-  SSLMode: true
-  Driver: pgx
-  Settings:
-    MaxOpenConns: 25
-    MaxIdleConns: 25
-    ConnMaxLifetime: 300000
-    ConnMaxIdleTime: 300000
-
-Jaeger:
-  URL: http://localhost:14268
-  ServiceName: cqrs-layout-example
-  TracerName: cqrs-layout-example
-  Password: root
-  Username: dev
-```
+This project is my own implementation of transaction-outbox pattern for personal use.
