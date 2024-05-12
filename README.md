@@ -1,45 +1,73 @@
-# cqrs-layout-example
+# github.com/NikitaTsaralov/transactional-outbox
 
-![cqrs](./assets/cqrs.png)
+![cqrs](./assets/ReliablePublication.png)
 
 ### Overview
 
-> CQRS stands for Command and Query Responsibility Segregation, a pattern that separates read and update operations for a data store.
+> Transactional outbox is a pattern that ensures that messages are delivered to a message broker in a reliable way.
 
-This project is example of cqrs pattern implementation on golang.
-Can be used as project starter for crud based applications.
-You just need to replace entity_name with your own domain entity
+This project is my own implementation of transaction-outbox pattern for personal use.
 
-### Layout features
+### How to
 
-* Hexagonal architecture
-* DTO (Data Transfer Object) for request and response
-* DDD (Domain Driven Design) for domain entity
-* CQRS (Command Query Responsibility Segregation) for separation of read and write operation (replication support)
+1. Run ./examples/docker-compose.yml
+2. Create topic in kafka
 
-### Config example
+```shell
+docker exec -it kafka kafka-topics --create --topic transactional-outbox --partitions 1 --replication-factor 1 --bootstrap-server localhost:29092
+```
 
-To use this example you need to create `./config/config.yaml` and fill it with:
+3. Run example (full example in ./examples/main.go)
 
-```yaml
-Postgres:
-  Host: localhost
-  Port: 5432
-  User: root
-  Password: dev
-  DBName: postgres
-  SSLMode: true
-  Driver: pgx
-  Settings:
-    MaxOpenConns: 25
-    MaxIdleConns: 25
-    ConnMaxLifetime: 300000
-    ConnMaxIdleTime: 300000
+```go
+// init
+client := transactionalOutbox.NewClient(
+    postgresDB,
+    kafkaClient,
+    10000,
+    manager.Must(trmsqlx.NewDefaultFactory(postgresDB)),
+    trmsqlx.DefaultCtxGetter,
+)
 
-Jaeger:
-  URL: http://localhost:14268
-  ServiceName: cqrs-layout-example
-  TracerName: cqrs-layout-example
-  Password: root
-  Username: dev
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+// create event
+_, err := client.CreateEvent(ctx, entity.CreateEventCommand{
+    EntityID:       uuid.New(),
+    IdempotencyKey: "test",
+    Payload:        []byte(`{"test": "test"}`),
+    Topic:          "test",
+})
+if err != nil {
+    logger.Fatalf("failed to create event: %v", err)
+}
+
+// batch create events
+_, err := client.BatchCreateEvents(ctx, entity.BatchCreateEventCommand{
+    {
+        EntityID:       uuid.New(),
+        IdempotencyKey: "test2",
+        Payload:        []byte(`{"test": "test"}`),
+        Topic:          "test",
+    },
+    {
+        EntityID:       uuid.New(),
+        IdempotencyKey: "test3",
+        Payload:        []byte(`{"test": "test"}`),
+        Topic:          "test",
+    },
+})
+if err != nil {
+    logger.Fatalf("failed to batch create events: %v", err)
+}
+
+// run message relay
+client.RunMessageRelay(ctx)
+```
+
+### Linter
+
+```shell
+golangci-lint run  -v --config .golangci.yml
 ```
