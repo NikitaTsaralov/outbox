@@ -28,10 +28,10 @@ type EventBatch struct {
 
 func NewEventBatchFromCommand(e BatchCreateEventCommand) EventBatch {
 	batch := EventBatch{
-		EntityIDs:       make(pq.StringArray, 0, len(e)),
-		IdempotencyKeys: make(pq.StringArray, 0, len(e)),
-		Payloads:        make(pq.StringArray, 0, len(e)),
-		Topics:          make(pq.StringArray, 0, len(e)),
+		EntityIDs:       make(pq.StringArray, len(e)),
+		IdempotencyKeys: make(pq.StringArray, len(e)),
+		Payloads:        make(pq.StringArray, len(e)),
+		Topics:          make(pq.StringArray, len(e)),
 	}
 
 	for i, event := range e {

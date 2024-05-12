@@ -4,7 +4,9 @@ import (
 	"context"
 
 	transactionalOutbox "github.com/NikitaTsaralov/transactional-outbox/application"
+	"github.com/NikitaTsaralov/transactional-outbox/domain/entity"
 	"github.com/NikitaTsaralov/utils/connectors/kafka/opts/ack_policy"
+	"github.com/google/uuid"
 
 	"github.com/NikitaTsaralov/utils/connectors/kafka"
 	"github.com/NikitaTsaralov/utils/connectors/kafka/producer"
@@ -33,18 +35,37 @@ func main() {
 	defer cancel()
 
 	// create event
-	//id, err := client.CreateEvent(ctx, entity.CreateEventCommand{
-	//	EntityID:       uuid.New(),
-	//	IdempotencyKey: "test",
-	//	Payload:        []byte(`{"test": "test"}`),
-	//	Topic:          "test",
-	//})
-	//if err != nil {
-	//	logger.Fatalf("failed to create event: %v", err)
-	//}
+	_, err := client.CreateEvent(ctx, entity.CreateEventCommand{
+		EntityID:       uuid.New(),
+		IdempotencyKey: "test1",
+		Payload:        []byte(`{"test": "test"}`),
+		Topic:          "test",
+	})
+	if err != nil {
+		logger.Fatalf("failed to create event: %v", err)
+	}
+
+	// batch create events
+	_, err = client.BatchCreateEvents(ctx, entity.BatchCreateEventCommand{
+		{
+			EntityID:       uuid.New(),
+			IdempotencyKey: "test2",
+			Payload:        []byte(`{"test": "test"}`),
+			Topic:          "test",
+		},
+		{
+			EntityID:       uuid.New(),
+			IdempotencyKey: "test3",
+			Payload:        []byte(`{"test": "test"}`),
+			Topic:          "test",
+		},
+	})
+	if err != nil {
+		logger.Fatalf("failed to batch create events: %v", err)
+	}
 
 	// run message relay
-	client.RunMessageRelay(ctx)
+	//client.RunMessageRelay(ctx)
 }
 
 func connect() (*sqlx.DB, *kgo.Client) {

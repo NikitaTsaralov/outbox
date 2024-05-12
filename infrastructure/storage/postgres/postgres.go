@@ -57,19 +57,20 @@ func (s *Storage) BatchCreateOutboxEvents(
 
 	batch := entity.NewEventBatchFromCommand(events)
 
-	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).GetContext(
+	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).SelectContext(
 		ctx,
 		&ids,
 		queryBatchCreateEvent,
 		batch.EntityIDs,
 		batch.IdempotencyKeys,
+		batch.Topics,
 		batch.Payloads,
 	)
 	if err != nil {
 		return ids, trace.Wrapf(
 			span,
 			err,
-			"Storage.Postgres.BatchCreateOutboxEvent.GetContext(entityIDs: %v)",
+			"Storage.Postgres.BatchCreateOutboxEvent.SelectContext(entityIDs: %v)",
 			events.EntityIDs(),
 		)
 	}
