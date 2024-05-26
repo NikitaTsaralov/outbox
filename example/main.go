@@ -2,97 +2,107 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"log"
+	"time"
 
-	transactionalOutbox "github.com/NikitaTsaralov/transactional-outbox/application"
-	"github.com/NikitaTsaralov/transactional-outbox/domain/entity"
-	"github.com/NikitaTsaralov/utils/connectors/kafka/opts/ack_policy"
-	"github.com/google/uuid"
-
-	"github.com/NikitaTsaralov/utils/connectors/kafka"
-	"github.com/NikitaTsaralov/utils/connectors/kafka/producer"
-	"github.com/NikitaTsaralov/utils/connectors/postgres"
+	transactionalOutbox "github.com/NikitaTsaralov/transactional-outbox"
+	"github.com/NikitaTsaralov/transactional-outbox/config"
 	"github.com/NikitaTsaralov/utils/logger"
 	trmsqlx "github.com/avito-tech/go-transaction-manager/sqlx"
 	"github.com/avito-tech/go-transaction-manager/trm/manager"
+	"github.com/google/uuid"
+	_ "github.com/jackc/pgx/v5/stdlib" // pgx driver
 	"github.com/jmoiron/sqlx"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-func main() {
-	postgresDB, kafkaClient := connect()
-	defer postgresDB.Close()
-	defer kafkaClient.Close()
+const (
+	topic     = "transactional-outbox"
+	timeout   = 10000 // 10s
+	batchSize = 100
+	eventTTL  = 60000 // 1m
+)
 
-	client := transactionalOutbox.NewClient(
-		postgresDB,
-		kafkaClient,
-		10000,
-		manager.Must(trmsqlx.NewDefaultFactory(postgresDB)),
-		trmsqlx.DefaultCtxGetter,
+func initPostgres() *sqlx.DB {
+	db, err := sqlx.Connect(
+		"pgx",
+		"host=localhost port=5432 user=root dbname=postgres sslmode=disable password=dev",
 	)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// create event
-	_, err := client.CreateEvent(ctx, entity.CreateEventCommand{
-		EntityID:       uuid.New(),
-		IdempotencyKey: "test1",
-		Payload:        []byte(`{"test": "test"}`),
-		Topic:          "test",
-	})
 	if err != nil {
-		logger.Fatalf("failed to create event: %v", err)
+		log.Fatalf("cannot connect to postgres: %v", err)
 	}
 
-	// batch create events
-	_, err = client.BatchCreateEvents(ctx, entity.BatchCreateEventCommand{
-		{
-			EntityID:       uuid.New(),
-			IdempotencyKey: "test2",
-			Payload:        []byte(`{"test": "test"}`),
-			Topic:          "test",
-		},
-		{
-			EntityID:       uuid.New(),
-			IdempotencyKey: "test3",
-			Payload:        []byte(`{"test": "test"}`),
-			Topic:          "test",
-		},
-	})
-	if err != nil {
-		logger.Fatalf("failed to batch create events: %v", err)
-	}
-
-	// run message relay
-	client.RunMessageRelay(ctx)
+	return db
 }
 
-func connect() (*sqlx.DB, *kgo.Client) {
-	db, err := postgres.Start(postgres.Config{
-		Host:           "localhost",
-		Port:           5432,
-		User:           "root",
-		Password:       "dev",
-		DBName:         "postgres",
-		SSLModeEnabled: false,
-		Driver:         "pgx",
-		Settings:       postgres.Settings{},
+func initKafka() *kgo.Client {
+	client, err := kgo.NewClient(kgo.SeedBrokers([]string{"localhost:29092"}...))
+	if err != nil {
+		log.Fatalf("cannot init kafka client: %v", err)
+	}
+
+	return client
+}
+
+func main() {
+	db := initPostgres() // 1. init postgres (jmoiron/sqlx)
+	defer db.Close()
+
+	broker := initKafka() // 2. init kafka (franz-go)
+	defer broker.Close()
+
+	txManager := manager.Must(trmsqlx.NewDefaultFactory(db)) // 3. prepare context (avito-tech/go-transaction-manager)
+	ctxGetter := trmsqlx.DefaultCtxGetter
+
+	// 4. finally init transactional-outbox
+	outbox := transactionalOutbox.NewClient(&config.Config{
+		MessageRelay: config.MessageRelay{
+			Timeout:   timeout,
+			BatchSize: batchSize,
+		},
+		GarbageCollector: config.GarbageCollector{
+			Timeout: timeout,
+			TTL:     eventTTL,
+		},
+	}, db, broker, txManager, ctxGetter)
+
+	ctxWithCancel, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// now u can create single event
+	_, err := outbox.CreateEvent(ctxWithCancel, transactionalOutbox.CreateEventCommand{
+		EntityID:       uuid.NewString(),
+		IdempotencyKey: uuid.NewString(),
+		Payload:        json.RawMessage(`{"a": "b"}`),
+		Topic:          topic,
 	})
 	if err != nil {
-		logger.Fatalf("failed to connect to postgres: %v", err)
+		logger.Error("cannot create event: %v", err)
+		return
 	}
 
-	newProducer, err := producer.NewProducer(producer.ProducerConfig{
-		CommonConfig: kafka.CommonConfig{
-			Brokers: []string{"localhost:29092"},
-			Topic:   "test",
+	// or to create multiple events at once
+	_, err = outbox.BatchCreateEvents(ctxWithCancel, transactionalOutbox.BatchCreateEventCommand{
+		transactionalOutbox.CreateEventCommand{
+			EntityID:       uuid.NewString(),
+			IdempotencyKey: uuid.NewString(),
+			Payload:        json.RawMessage(`{"c": "d"}`),
+			Topic:          topic,
 		},
-		RequireAcks: ack_policy.AllAck,
-	}, nil)
+		transactionalOutbox.CreateEventCommand{
+			EntityID:       uuid.NewString(),
+			IdempotencyKey: uuid.NewString(),
+			Payload:        json.RawMessage(`{"e": "f"}`),
+			Topic:          topic,
+		},
+	})
 	if err != nil {
-		logger.Fatalf("failed to create producer: %v", err)
+		logger.Error("cannot batch create event: %v", err)
+		return
 	}
 
-	return db, newProducer.Client
+	go outbox.RunMessageRelay(ctxWithCancel)     // to start producing messages to your broker
+	go outbox.RunGarbageCollector(ctxWithCancel) // if u are concerned about table size just use garbage collector
+	time.Sleep(timeout * time.Millisecond)
 }
