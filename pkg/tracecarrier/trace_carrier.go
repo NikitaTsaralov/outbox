@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	errorList "github.com/NikitaTsaralov/transactional-outbox/errors"
+	errorList "github.com/NikitaTsaralov/transactional-outbox/pkg/tracecarrier/errors"
 	"go.opentelemetry.io/otel"
 )
 
