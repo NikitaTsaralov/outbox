@@ -15,10 +15,10 @@ All necessary functions your application may need to safely publish messages to 
 ```go
 // TransactionalOutbox interface describes public functions u obtain using this package
 type TransactionalOutbox interface {
-	CreateEvent(ctx context.Context, event transactional_outbox.CreateEventCommand) (int64, error)
-	BatchCreateEvents(ctx context.Context, events transactional_outbox.BatchCreateEventCommand) ([]int64, error)
-	RunMessageRelay(ctx context.Context)
-	RunGarbageCollector(ctx context.Context)
+    CreateEvent(ctx context.Context, event outbox.CreateEventCommand) (int64, error)
+    BatchCreateEvents(ctx context.Context, events outbox.BatchCreateEventCommand) ([]int64, error)
+    RunMessageRelay(ctx context.Context)
+    RunGarbageCollector(ctx context.Context)
 }
 ```
 
@@ -37,6 +37,7 @@ import (
 
 	transactionalOutbox "github.com/NikitaTsaralov/transactional-outbox"
 	"github.com/NikitaTsaralov/transactional-outbox/config"
+	"github.com/NikitaTsaralov/utils/logger"
 	trmsqlx "github.com/avito-tech/go-transaction-manager/sqlx"
 	"github.com/avito-tech/go-transaction-manager/trm/manager"
 	"github.com/google/uuid"
@@ -45,10 +46,14 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-const topic = "transactional-outbox"
+const (
+	topic     = "transactional-outbox"
+	timeout   = 10000 // 10s
+	batchSize = 100
+	eventTTL  = 60000 // 1m
+)
 
-func main() {
-	// 1. init postgres (jmoiron/sqlx)
+func initPostgres() *sqlx.DB {
 	db, err := sqlx.Connect(
 		"pgx",
 		"host=localhost port=5432 user=root dbname=postgres sslmode=disable password=dev",
@@ -57,14 +62,25 @@ func main() {
 		log.Fatalf("cannot connect to postgres: %v", err)
 	}
 
-	defer db.Close()
+	return db
+}
 
-	// 2. init kafka (franz-go)
-	broker, err := kgo.NewClient(kgo.SeedBrokers([]string{"localhost:29092"}...))
+func initKafka() *kgo.Client {
+	client, err := kgo.NewClient(kgo.SeedBrokers([]string{"localhost:29092"}...))
 	if err != nil {
 		log.Fatalf("cannot init kafka client: %v", err)
 	}
 
+	return client
+}
+
+func main() {
+	// 1. init postgres (jmoiron/sqlx)
+	db := initPostgres()
+	defer db.Close()
+
+	// 2. init kafka (franz-go)
+	broker := initKafka()
 	defer broker.Close()
 
 	// 3. prepare context (avito-tech/go-transaction-manager)
@@ -74,30 +90,32 @@ func main() {
 	// 4. finally init transactional-outbox
 	outbox := transactionalOutbox.NewClient(&config.Config{
 		MessageRelay: config.MessageRelay{
-			Timeout:   10000, // 10s
-			BatchSize: 100,
+			Timeout:   timeout,
+			BatchSize: batchSize,
 		},
 		GarbageCollector: config.GarbageCollector{
-			Timeout: 1000,      // 10s
-			TTL:     1000 * 60, // 60min
+			Timeout: timeout,
+			TTL:     eventTTL,
 		},
 	}, db, broker, txManager, ctxGetter)
 
+	ctxWithCancel, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// now u can create single event
-	eventID, err := outbox.CreateEvent(context.Background(), transactionalOutbox.CreateEventCommand{
+	_, err := outbox.CreateEvent(ctxWithCancel, transactionalOutbox.CreateEventCommand{
 		EntityID:       uuid.NewString(),
 		IdempotencyKey: uuid.NewString(),
 		Payload:        json.RawMessage(`{"a": "b"}`),
 		Topic:          topic,
 	})
 	if err != nil {
-		log.Fatalf("cannot create event: %v", err)
+		logger.Error("cannot create event: %v", err)
+		return
 	}
 
-	log.Printf("event with id %d created", eventID)
-
 	// or to create multiple events at once
-	eventIDs, err := outbox.BatchCreateEvents(context.Background(), transactionalOutbox.BatchCreateEventCommand{
+	_, err = outbox.BatchCreateEvents(ctxWithCancel, transactionalOutbox.BatchCreateEventCommand{
 		transactionalOutbox.CreateEventCommand{
 			EntityID:       uuid.NewString(),
 			IdempotencyKey: uuid.NewString(),
@@ -112,21 +130,17 @@ func main() {
 		},
 	})
 	if err != nil {
-		log.Fatalf("cannot batch create event: %v", err)
+		logger.Error("cannot batch create event: %v", err)
+		return
 	}
-
-	log.Printf("events with ids %v created", eventIDs)
-
-	ctxWithCancel, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	
 	// to start producing messages to your broker
 	go outbox.RunMessageRelay(ctxWithCancel)
 
 	// if u are concerned about table size just use garbage collector
-	go outbox.RunGarbageCollector(ctxWithCancel)
-
-	time.Sleep(10 * time.Second)
+	go outbox.RunGarbageCollector(ctxWithCancel) 
+	
+	time.Sleep(timeout * time.Millisecond)
 }
 ```
 
