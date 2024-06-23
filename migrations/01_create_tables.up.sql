@@ -7,7 +7,8 @@ create table if not exists outbox
     payload         jsonb     not null,
     trace_carrier   jsonb     not null,
     created_at      timestamp not null default now(),
-    sent_at         timestamp
+    sent_at         timestamp,
+    ttl             bigint    not null
 );
 
 create index outbox_entity_id_idx on outbox (entity_id); -- to search by entity_id

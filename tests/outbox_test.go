@@ -9,7 +9,7 @@ import (
 
 	transactionalOutbox "github.com/NikitaTsaralov/transactional-outbox"
 	"github.com/NikitaTsaralov/transactional-outbox/config"
-	"github.com/NikitaTsaralov/transactional-outbox/models/event"
+	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/storage/postgres/dto"
 	txManager "github.com/avito-tech/go-transaction-manager/sqlx"
 	"github.com/avito-tech/go-transaction-manager/trm/manager"
 	"github.com/google/uuid"
@@ -101,6 +101,7 @@ func (s *OutboxTestSuite) TestCreateEvent() {
 				IdempotencyKey: uuid.NewString(),
 				Payload:        json.RawMessage(`{"1": "2"}`),
 				Topic:          "transactional-outbox",
+				TTL:            time.Second * 10,
 			},
 		},
 	}
@@ -111,11 +112,13 @@ func (s *OutboxTestSuite) TestCreateEvent() {
 			s.Require().Nil(err)
 			s.Require().NotNil(id)
 
-			var createdEvent event.Events
+			var createdEventDto dto.Events
 
-			err = s.db.Select(&createdEvent, queryFetchEventsByIDs, pq.Int64Array([]int64{id}))
+			err = s.db.Select(&createdEventDto, queryFetchEventsByIDs, pq.Int64Array([]int64{id}))
 			s.Require().Nil(err)
-			s.Require().Equal(len(createdEvent), 1)
+			s.Require().Equal(len(createdEventDto), 1)
+
+			createdEvent := createdEventDto.ToModel()
 
 			s.Require().NotNil(createdEvent[0].ID)
 			s.Require().Equal(createdEvent[0].ID, id)
@@ -123,9 +126,10 @@ func (s *OutboxTestSuite) TestCreateEvent() {
 			s.Require().Equal(createdEvent[0].IdempotencyKey, test.data.IdempotencyKey)
 			s.Require().Equal(createdEvent[0].Payload, test.data.Payload)
 			s.Require().Equal(createdEvent[0].Topic, test.data.Topic)
-			s.Require().NotNil(createdEvent[0].TraceCarrier)
+			s.Require().NotNil(createdEvent[0].Context)
 			s.Require().NotNil(createdEvent[0].CreatedAt)
 			s.Require().False(createdEvent[0].SentAt.Valid)
+			s.Require().Equal(createdEvent[0].TTL, test.data.TTL)
 		})
 	}
 }
@@ -143,12 +147,14 @@ func (s *OutboxTestSuite) TestBatchCreateEvent() {
 					IdempotencyKey: uuid.NewString(),
 					Payload:        json.RawMessage(`{"3": "4"}`),
 					Topic:          "transactional-outbox",
+					TTL:            time.Second * 10,
 				},
 				transactionalOutbox.CreateEventCommand{
 					EntityID:       uuid.NewString(),
 					IdempotencyKey: uuid.NewString(),
 					Payload:        json.RawMessage(`{"5": "6"}`),
 					Topic:          "transactional-outbox",
+					TTL:            time.Second * 10,
 				},
 			},
 		},
@@ -164,12 +170,13 @@ func (s *OutboxTestSuite) TestBatchCreateEvent() {
 			s.Require().Nil(err)
 			s.Require().NotNil(ids)
 
-			var createdEvents event.Events
+			var createdEventsDto dto.Events
 
-			err = s.db.Select(&createdEvents, queryFetchEventsByIDs, pq.Int64Array(ids))
+			err = s.db.Select(&createdEventsDto, queryFetchEventsByIDs, pq.Int64Array(ids))
 			s.Require().Nil(err)
-
 			s.Require().Equal(len(ids), len(test.data))
+
+			createdEvents := createdEventsDto.ToModel()
 
 			for i := 0; i < len(ids); i++ {
 				s.Require().NotNil(createdEvents[i].ID)
@@ -178,9 +185,10 @@ func (s *OutboxTestSuite) TestBatchCreateEvent() {
 				s.Require().Equal(createdEvents[i].IdempotencyKey, test.data[i].IdempotencyKey)
 				s.Require().Equal(createdEvents[i].Payload, test.data[i].Payload)
 				s.Require().Equal(createdEvents[i].Topic, test.data[i].Topic)
-				s.Require().NotNil(createdEvents[i].TraceCarrier)
+				s.Require().NotNil(createdEvents[i].Context)
 				s.Require().NotNil(createdEvents[i].CreatedAt)
 				s.Require().False(createdEvents[i].SentAt.Valid)
+				s.Require().Equal(createdEvents[i].TTL, test.data[i].TTL)
 			}
 		})
 	}
@@ -192,12 +200,16 @@ func (s *OutboxTestSuite) TestRunMessageRelay() {
 
 	go s.outbox.RunMessageRelay(ctx)
 
+	s.TestBatchCreateEvent() // create some event (it's bad cause tests are not atomic)
+
 	time.Sleep(5 * time.Second) // this time is enough
 
-	var createdEvents event.Events
+	var dtoCreatedEvents dto.Events
 
-	err := s.db.Select(&createdEvents, queryFetchAll)
+	err := s.db.Select(&dtoCreatedEvents, queryFetchAll)
 	s.Require().Nil(err)
+
+	createdEvents := dtoCreatedEvents.ToModel()
 
 	for _, createdEvent := range createdEvents {
 		s.Require().True(createdEvent.SentAt.Valid)
@@ -209,12 +221,16 @@ func (s *OutboxTestSuite) TestRunGarbageCollector() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	time.Sleep(5 * time.Second) // skip relay
+	s.TestBatchCreateEvent() // create some event (it's bad cause tests are not atomic)
 
-	var eventsBefore event.Events
+	time.Sleep(11 * time.Second) // skip relay
 
-	err := s.db.Select(&eventsBefore, queryFetchAll)
+	var dtoEventsBefore dto.Events
+
+	err := s.db.Select(&dtoEventsBefore, queryFetchAll)
 	s.Require().Nil(err)
+
+	eventsBefore := dtoEventsBefore.ToModel()
 
 	eventsToDeleteCount := 0
 
@@ -228,11 +244,11 @@ func (s *OutboxTestSuite) TestRunGarbageCollector() {
 
 	time.Sleep(5 * time.Second)
 
-	var createdEvents event.Events
+	var dtoCreatedEvents dto.Events
 
-	err = s.db.Select(&createdEvents, queryFetchAll)
+	err = s.db.Select(&dtoCreatedEvents, queryFetchAll)
 	s.Require().Nil(err)
-	s.Require().Equal(len(eventsBefore)-eventsToDeleteCount, len(createdEvents))
+	s.Require().Equal(len(eventsBefore)-eventsToDeleteCount, len(dtoCreatedEvents))
 }
 
 func TestOutboxTestSuite(t *testing.T) {

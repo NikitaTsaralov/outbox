@@ -1,16 +1,22 @@
-package tracecarrier
+package dto
 
 import (
 	"context"
 	"encoding/json"
 
-	errorList "github.com/NikitaTsaralov/transactional-outbox/pkg/tracecarrier/errors"
+	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/storage/postgres/errors"
 	"go.opentelemetry.io/otel"
 )
 
 // MapCarrier is a TextMapCarrier that uses a map held in memory as a storage
 // medium for propagated key-value pairs.
 type TraceCarrier map[string]string
+
+func NewTraceCarrierFromContext(ctx context.Context) TraceCarrier {
+	carrier := make(TraceCarrier)
+	otel.GetTextMapPropagator().Inject(ctx, carrier)
+	return carrier
+}
 
 // Get returns the value associated with the passed key.
 func (t TraceCarrier) Get(key string) string {
@@ -28,29 +34,20 @@ func (t TraceCarrier) Keys() []string {
 	for k := range t {
 		keys = append(keys, k)
 	}
-
 	return keys
-}
-
-func NewTraceCarrierFromContext(ctx context.Context) TraceCarrier {
-	carrier := make(TraceCarrier)
-	otel.GetTextMapPropagator().Inject(ctx, carrier)
-
-	return carrier
-}
-
-func (t *TraceCarrier) Scan(v interface{}) error {
-	b, ok := v.([]byte)
-	if !ok {
-		return errorList.ErrTypeAssertionFailed
-	}
-
-	return json.Unmarshal(b, &t)
 }
 
 func (t *TraceCarrier) Context() context.Context {
 	ctx := context.Background()
 	otel.GetTextMapPropagator().Extract(ctx, t)
-
 	return ctx
+}
+
+func (t *TraceCarrier) Scan(v interface{}) error {
+	b, ok := v.([]byte)
+	if !ok {
+		return errors.ErrTypeAssertionFailed
+	}
+
+	return json.Unmarshal(b, &t)
 }
