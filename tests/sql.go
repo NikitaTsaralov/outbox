@@ -9,6 +9,7 @@ const (
 		     , trace_carrier
 		     , created_at
 		     , sent_at
+			 , ttl
 		from outbox 
 		where id = any($1)
 		order by entity_id`
@@ -21,6 +22,7 @@ const (
 		     , trace_carrier
 		     , created_at
 		     , sent_at
+			 , ttl
 		from outbox 
 		order by entity_id`
 

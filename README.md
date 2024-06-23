@@ -108,6 +108,7 @@ func main() {
 		IdempotencyKey: uuid.NewString(),
 		Payload:        json.RawMessage(`{"a": "b"}`),
 		Topic:          topic,
+		TTL:            time.Second * 10,
 	})
 	if err != nil {
 		logger.Error("cannot create event: %v", err)
@@ -121,25 +122,23 @@ func main() {
 			IdempotencyKey: uuid.NewString(),
 			Payload:        json.RawMessage(`{"c": "d"}`),
 			Topic:          topic,
+			TTL:            time.Second * 10,
 		},
 		transactionalOutbox.CreateEventCommand{
 			EntityID:       uuid.NewString(),
 			IdempotencyKey: uuid.NewString(),
 			Payload:        json.RawMessage(`{"e": "f"}`),
 			Topic:          topic,
+			TTL:            time.Second * 10,
 		},
 	})
 	if err != nil {
 		logger.Error("cannot batch create event: %v", err)
 		return
 	}
-	
-	// to start producing messages to your broker
-	go outbox.RunMessageRelay(ctxWithCancel)
 
-	// if u are concerned about table size just use garbage collector
-	go outbox.RunGarbageCollector(ctxWithCancel) 
-	
+	go outbox.RunMessageRelay(ctxWithCancel)     // to start producing messages to your broker
+	go outbox.RunGarbageCollector(ctxWithCancel) // if u are concerned about table size just use garbage collector
 	time.Sleep(timeout * time.Millisecond)
 }
 ```

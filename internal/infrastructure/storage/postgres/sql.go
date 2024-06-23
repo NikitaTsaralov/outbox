@@ -2,17 +2,18 @@ package postgres
 
 const (
 	queryCreateEvent = `
-		insert into outbox (entity_id, idempotency_key, topic, payload, trace_carrier)
-		values ($1, $2, $3, $4, $5)
+		insert into outbox (entity_id, idempotency_key, topic, payload, trace_carrier, ttl)
+		values ($1, $2, $3, $4, $5, $6)
 		returning id;`
 
 	queryBatchCreateEvent = `
-		insert into outbox (entity_id, idempotency_key, topic, payload, trace_carrier)
+		insert into outbox (entity_id, idempotency_key, topic, payload, trace_carrier, ttl)
 		values (unnest($1::uuid[]),
 				unnest($2::text[]),
 				unnest($3::text[]),
 				unnest($4::jsonb[]),
-		        unnest($5::jsonb[]))
+		        unnest($5::jsonb[]),
+		        unnest($6::bigint[]))
 		returning id;`
 
 	queryFetchUnprocessedEvents = `
@@ -35,5 +36,5 @@ const (
 
 	queryDeleteProcessedEvents = `
 		delete from outbox
-			where sent_at < now() - $1 * interval '1 millisecond';`
+			where sent_at < now() - ttl * interval '1 millisecond';`
 )

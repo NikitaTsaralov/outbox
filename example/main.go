@@ -46,13 +46,16 @@ func initKafka() *kgo.Client {
 }
 
 func main() {
-	db := initPostgres() // 1. init postgres (jmoiron/sqlx)
+	// 1. init postgres (jmoiron/sqlx)
+	db := initPostgres()
 	defer db.Close()
 
-	broker := initKafka() // 2. init kafka (franz-go)
+	// 2. init kafka (franz-go)
+	broker := initKafka()
 	defer broker.Close()
 
-	txManager := manager.Must(trmsqlx.NewDefaultFactory(db)) // 3. prepare context (avito-tech/go-transaction-manager)
+	// 3. prepare context (avito-tech/go-transaction-manager)
+	txManager := manager.Must(trmsqlx.NewDefaultFactory(db))
 	ctxGetter := trmsqlx.DefaultCtxGetter
 
 	// 4. finally init transactional-outbox
@@ -76,6 +79,7 @@ func main() {
 		IdempotencyKey: uuid.NewString(),
 		Payload:        json.RawMessage(`{"a": "b"}`),
 		Topic:          topic,
+		TTL:            time.Second * 10,
 	})
 	if err != nil {
 		logger.Error("cannot create event: %v", err)
@@ -89,12 +93,14 @@ func main() {
 			IdempotencyKey: uuid.NewString(),
 			Payload:        json.RawMessage(`{"c": "d"}`),
 			Topic:          topic,
+			TTL:            time.Second * 10,
 		},
 		transactionalOutbox.CreateEventCommand{
 			EntityID:       uuid.NewString(),
 			IdempotencyKey: uuid.NewString(),
 			Payload:        json.RawMessage(`{"e": "f"}`),
 			Topic:          topic,
+			TTL:            time.Second * 10,
 		},
 	})
 	if err != nil {
@@ -103,6 +109,6 @@ func main() {
 	}
 
 	go outbox.RunMessageRelay(ctxWithCancel)     // to start producing messages to your broker
-	go outbox.RunGarbageCollector(ctxWithCancel) // if u are concerned about table size just use garbage collector
+	go outbox.runGarbageCollector(ctxWithCancel) // if u are concerned about table size just use garbage collector
 	time.Sleep(timeout * time.Millisecond)
 }
