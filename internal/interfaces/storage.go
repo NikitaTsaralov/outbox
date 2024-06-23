@@ -11,5 +11,5 @@ type OutboxStorage interface {
 	BatchCreateOutboxEvents(ctx context.Context, events models.Events) ([]int64, error)
 	FetchUnprocessedEvents(ctx context.Context, batchSize int) (models.Events, error)
 	MarkEventsAsProcessed(ctx context.Context, ids []int64) error
-	DeleteProcessedEvents(ctx context.Context) error
+	DeleteProcessedEventsByTTL(ctx context.Context) error
 }

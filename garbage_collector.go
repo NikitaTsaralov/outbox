@@ -20,7 +20,7 @@ func (o Outbox) RunGarbageCollector(ctx context.Context) {
 				)
 				defer span.End()
 
-				err := o.storage.DeleteProcessedEvents(localCtx)
+				err := o.storage.DeleteProcessedEventsByTTL(localCtx)
 				if err != nil {
 					// TODO: log sentry
 					logger.Error(

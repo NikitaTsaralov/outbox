@@ -129,8 +129,8 @@ func (s *Storage) MarkEventsAsProcessed(ctx context.Context, ids []int64) error 
 	return err
 }
 
-func (s *Storage) DeleteProcessedEvents(ctx context.Context) error {
-	ctx, span := otel.Tracer("").Start(ctx, "Storage.Postgres.DeleteProcessedEvents")
+func (s *Storage) DeleteProcessedEventsByTTL(ctx context.Context) error {
+	ctx, span := otel.Tracer("").Start(ctx, "Storage.Postgres.DeleteProcessedEventsByTTL")
 	defer span.End()
 
 	_, err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).ExecContext(ctx, queryDeleteProcessedEvents)
@@ -138,7 +138,7 @@ func (s *Storage) DeleteProcessedEvents(ctx context.Context) error {
 		return trace.Wrapf(
 			span,
 			err,
-			"Storage.Postgres.DeleteProcessedEvents.ExecContext()",
+			"Storage.Postgres.DeleteProcessedEventsByTTL.ExecContext()",
 		)
 	}
 
