@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-func (o Client) CreateEvent(ctx context.Context, command CreateEventCommand) (int64, error) {
+func (o Outbox) CreateEvent(ctx context.Context, command CreateEventCommand) (int64, error) {
 	ctx, span := otel.Tracer("").Start(ctx, "TransactionalOutbox.CreateEvent")
 	defer span.End()
 
@@ -22,7 +22,7 @@ func (o Client) CreateEvent(ctx context.Context, command CreateEventCommand) (in
 	})
 }
 
-func (o Client) BatchCreateEvents(ctx context.Context, command BatchCreateEventCommand) ([]int64, error) {
+func (o Outbox) BatchCreateEvents(ctx context.Context, command BatchCreateEventCommand) ([]int64, error) {
 	ctx, span := otel.Tracer("").Start(ctx, "TransactionalOutbox.BatchCreateEvents")
 	defer span.End()
 

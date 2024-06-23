@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-func (o Client) RunGarbageCollector(ctx context.Context) {
+func (o Outbox) RunGarbageCollector(ctx context.Context) {
 	for {
 		select {
 		case <-time.NewTicker(o.cfg.GarbageCollector.Timeout * time.Millisecond).C:

@@ -70,7 +70,7 @@ func (s *OutboxTestSuite) SetupTest() {
 	s.txManager = manager.Must(txManager.NewDefaultFactory(s.db))
 	s.ctxGetter = txManager.DefaultCtxGetter
 
-	s.outbox = transactionalOutbox.NewClient(s.cfg, s.db, s.broker, s.txManager, s.ctxGetter)
+	s.outbox = transactionalOutbox.NewOutbox(s.cfg, s.db, s.broker, s.txManager, s.ctxGetter)
 
 	_, err = s.db.Exec(queryDeleteAll)
 	s.Require().Nil(err)

@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-func (o Client) RunMessageRelay(ctx context.Context) {
+func (o Outbox) RunMessageRelay(ctx context.Context) {
 	for {
 		select {
 		case <-time.NewTicker(o.cfg.MessageRelay.Timeout * time.Millisecond).C:

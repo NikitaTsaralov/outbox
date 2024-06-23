@@ -59,7 +59,7 @@ func main() {
 	ctxGetter := trmsqlx.DefaultCtxGetter
 
 	// 4. finally init transactional-outbox
-	outbox := transactionalOutbox.NewClient(&config.Config{
+	outbox := transactionalOutbox.NewOutbox(&config.Config{
 		MessageRelay: config.MessageRelay{
 			Timeout:   timeout,
 			BatchSize: batchSize,

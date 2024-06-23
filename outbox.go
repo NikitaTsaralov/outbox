@@ -11,7 +11,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-type Client struct {
+type Outbox struct {
 	cfg       *config.Config
 	storage   interfaces2.OutboxStorage
 	broker    interfaces2.Broker
@@ -19,14 +19,14 @@ type Client struct {
 	ctxGetter *txManager.CtxGetter
 }
 
-func NewClient(
+func NewOutbox(
 	cfg *config.Config,
 	db *sqlx.DB,
 	kafkaClient *kgo.Client,
 	txManager *manager.Manager,
 	ctxGetter *txManager.CtxGetter,
-) *Client {
-	return &Client{
+) *Outbox {
+	return &Outbox{
 		cfg:       cfg,
 		storage:   postgres.NewStorage(db, ctxGetter),
 		broker:    kafka.NewBroker(kafkaClient),
