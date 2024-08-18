@@ -95,7 +95,7 @@ func main() {
 		},
 		GarbageCollector: config.GarbageCollector{
 			Timeout: timeout,
-			TTL:     eventTTL,
+			BatchSize: batchSize,
 		},
 	}, db, broker, txManager, ctxGetter)
 
@@ -108,6 +108,7 @@ func main() {
 		IdempotencyKey: uuid.NewString(),
 		Payload:        json.RawMessage(`{"a": "b"}`),
 		Topic:          topic,
+		Key:            uuid.NewString(),
 		TTL:            time.Second * 10,
 	})
 	if err != nil {
@@ -122,6 +123,7 @@ func main() {
 			IdempotencyKey: uuid.NewString(),
 			Payload:        json.RawMessage(`{"c": "d"}`),
 			Topic:          topic,
+			Key:            uuid.NewString(),
 			TTL:            time.Second * 10,
 		},
 		transactionalOutbox.CreateEventCommand{
@@ -129,6 +131,7 @@ func main() {
 			IdempotencyKey: uuid.NewString(),
 			Payload:        json.RawMessage(`{"e": "f"}`),
 			Topic:          topic,
+			Key:            uuid.NewString(),
 			TTL:            time.Second * 10,
 		},
 	})

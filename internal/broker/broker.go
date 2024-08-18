@@ -1,4 +1,4 @@
-package interfaces
+package broker
 
 import (
 	"context"

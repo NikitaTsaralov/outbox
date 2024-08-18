@@ -14,11 +14,12 @@ type Event struct {
 	EntityID       string          `db:"entity_id"`
 	IdempotencyKey string          `db:"idempotency_key"`
 	Topic          string          `db:"topic"`
+	Key            string          `db:"key"`
 	Payload        json.RawMessage `db:"payload"`
 	TraceCarrier   TraceCarrier    `db:"trace_carrier"`
-	CreatedAt      null.Time       `db:"created_at"`
+	CreatedAt      time.Time       `db:"created_at"`
+	ExpiresAt      time.Time       `db:"expires_at"`
 	SentAt         null.Time       `db:"sent_at"`
-	TTL            int64           `db:"ttl"`
 	Available      bool            `db:"available"`
 }
 
@@ -28,11 +29,12 @@ func NewEventFromModel(e models.Event) Event {
 		EntityID:       e.EntityID,
 		IdempotencyKey: e.IdempotencyKey,
 		Topic:          e.Topic,
+		Key:            e.Key,
 		Payload:        e.Payload,
 		TraceCarrier:   NewTraceCarrierFromContext(e.Context),
 		CreatedAt:      e.CreatedAt,
+		ExpiresAt:      e.ExpiresAt,
 		SentAt:         e.SentAt,
-		TTL:            e.TTL.Milliseconds(),
 	}
 }
 
@@ -42,11 +44,12 @@ func (e Event) ToModel() models.Event {
 		EntityID:       e.EntityID,
 		IdempotencyKey: e.IdempotencyKey,
 		Topic:          e.Topic,
+		Key:            e.Key,
 		Payload:        e.Payload,
 		Context:        e.TraceCarrier.Context(),
 		CreatedAt:      e.CreatedAt,
+		ExpiresAt:      e.ExpiresAt,
 		SentAt:         e.SentAt,
-		TTL:            time.Duration(e.TTL) * time.Millisecond,
 	}
 }
 

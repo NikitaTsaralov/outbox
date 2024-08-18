@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/broker/kafka/dto"
 	"github.com/NikitaTsaralov/transactional-outbox/internal/models"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.opentelemetry.io/otel"
@@ -25,7 +24,7 @@ func (b *Broker) PublishEvents(ctx context.Context, events models.Events) ([]int
 	var err error
 
 	ids := make([]int64, len(events))
-	produceResults := b.client.ProduceSync(ctx, dto.NewRecordsFromModel(events)...)
+	produceResults := b.client.ProduceSync(ctx, newRecordsFromModel(events)...)
 
 	for i, res := range produceResults {
 		if res.Err != nil {

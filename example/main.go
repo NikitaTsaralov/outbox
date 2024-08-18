@@ -7,7 +7,6 @@ import (
 	"time"
 
 	transactionalOutbox "github.com/NikitaTsaralov/transactional-outbox"
-	"github.com/NikitaTsaralov/transactional-outbox/config"
 	"github.com/NikitaTsaralov/utils/logger"
 	trmsqlx "github.com/avito-tech/go-transaction-manager/sqlx"
 	"github.com/avito-tech/go-transaction-manager/trm/manager"
@@ -59,14 +58,14 @@ func main() {
 	ctxGetter := trmsqlx.DefaultCtxGetter
 
 	// 4. finally init transactional-outbox
-	outbox := transactionalOutbox.NewOutbox(&config.Config{
-		MessageRelay: config.MessageRelay{
+	outbox := transactionalOutbox.NewOutbox(&transactionalOutbox.Config{
+		MessageRelay: transactionalOutbox.MessageRelayConfig{
 			Timeout:   timeout,
 			BatchSize: batchSize,
 		},
-		GarbageCollector: config.GarbageCollector{
-			Timeout: timeout,
-			TTL:     eventTTL,
+		GarbageCollector: transactionalOutbox.GarbageCollectorConfig{
+			Timeout:   timeout,
+			BatchSize: batchSize,
 		},
 	}, db, broker, txManager, ctxGetter)
 
@@ -74,7 +73,7 @@ func main() {
 	defer cancel()
 
 	// now u can create single event
-	_, err := outbox.CreateEvent(ctxWithCancel, transactionalOutbox.CreateEventCommand{
+	_, err := outbox.CreateEventCommandHandler(ctxWithCancel, transactionalOutbox.CreateEventCommand{
 		EntityID:       uuid.NewString(),
 		IdempotencyKey: uuid.NewString(),
 		Payload:        json.RawMessage(`{"a": "b"}`),
@@ -87,7 +86,7 @@ func main() {
 	}
 
 	// or to create multiple events at once
-	_, err = outbox.BatchCreateEvents(ctxWithCancel, transactionalOutbox.BatchCreateEventCommand{
+	_, err = outbox.BatchCreateEvents(ctxWithCancel, transactionalOutbox.BatchCreateEventsCommand{
 		transactionalOutbox.CreateEventCommand{
 			EntityID:       uuid.NewString(),
 			IdempotencyKey: uuid.NewString(),
@@ -109,6 +108,6 @@ func main() {
 	}
 
 	go outbox.RunMessageRelay(ctxWithCancel)     // to start producing messages to your broker
-	go outbox.runGarbageCollector(ctxWithCancel) // if u are concerned about table size just use garbage collector
+	go outbox.RunGarbageCollector(ctxWithCancel) // if u are concerned about table size just use garbage collector
 	time.Sleep(timeout * time.Millisecond)
 }

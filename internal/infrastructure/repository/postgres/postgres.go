@@ -3,17 +3,18 @@ package postgres
 import (
 	"context"
 
-	dto2 "github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/storage/postgres/dto"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/interfaces"
+	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/repository/postgres/dto"
 	"github.com/NikitaTsaralov/transactional-outbox/internal/models"
+	"github.com/NikitaTsaralov/transactional-outbox/internal/repository"
 	"github.com/NikitaTsaralov/utils/utils/trace"
 	txManager "github.com/avito-tech/go-transaction-manager/sqlx"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel"
 )
 
-var _ interfaces.OutboxStorage = &Storage{}
+var _ repository.OutboxStorage = &Storage{}
 
 type Storage struct {
 	db        *sqlx.DB
@@ -30,7 +31,7 @@ func (s *Storage) CreateOutboxEvent(ctx context.Context, event models.Event) (in
 
 	var id int64
 
-	dtoEvent := dto2.NewEventFromModel(event)
+	dtoEvent := dto.NewEventFromModel(event)
 
 	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).GetContext(
 		ctx,
@@ -39,9 +40,11 @@ func (s *Storage) CreateOutboxEvent(ctx context.Context, event models.Event) (in
 		dtoEvent.EntityID,
 		dtoEvent.IdempotencyKey,
 		dtoEvent.Topic,
+		dtoEvent.Key,
 		dtoEvent.Payload,
 		dtoEvent.TraceCarrier,
-		dtoEvent.TTL,
+		dtoEvent.CreatedAt,
+		dtoEvent.ExpiresAt,
 	)
 	if err != nil {
 		return id, trace.Wrapf(
@@ -64,7 +67,7 @@ func (s *Storage) BatchCreateOutboxEvents(
 
 	var ids []int64
 
-	dtoBatch := dto2.NewEventBatchFromEvents(events)
+	dtoBatch := dto.NewEventBatchFromEvents(events)
 
 	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).SelectContext(
 		ctx,
@@ -73,9 +76,11 @@ func (s *Storage) BatchCreateOutboxEvents(
 		dtoBatch.EntityIDs,
 		dtoBatch.IdempotencyKeys,
 		dtoBatch.Topics,
+		dtoBatch.Keys,
 		dtoBatch.Payloads,
 		dtoBatch.TraceCarriers,
-		dtoBatch.TTL,
+		dtoBatch.CreatedAts,
+		dtoBatch.ExpiresAts,
 	)
 	if err != nil {
 		return ids, trace.Wrapf(
@@ -93,7 +98,7 @@ func (s *Storage) FetchUnprocessedEvents(ctx context.Context, batchSize int) (mo
 	ctx, span := otel.Tracer("").Start(ctx, "Storage.Postgres.FetchUnprocessedEvents")
 	defer span.End()
 
-	var events dto2.Events
+	var events dto.Events
 
 	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).SelectContext(ctx, &events, queryFetchUnprocessedEvents, batchSize)
 	if err != nil {
@@ -105,7 +110,7 @@ func (s *Storage) FetchUnprocessedEvents(ctx context.Context, batchSize int) (mo
 	}
 
 	// pg advisory lock implementation
-	events = lo.Filter(events, func(item dto2.Event, _ int) bool {
+	events = lo.Filter(events, func(item dto.Event, _ int) bool {
 		return item.Available
 	})
 
@@ -129,18 +134,55 @@ func (s *Storage) MarkEventsAsProcessed(ctx context.Context, ids []int64) error 
 	return err
 }
 
-func (s *Storage) DeleteProcessedEventsByTTL(ctx context.Context) error {
-	ctx, span := otel.Tracer("").Start(ctx, "Storage.Postgres.DeleteProcessedEventsByTTL")
+func (s *Storage) CountExpiredEvents(ctx context.Context) (int, error) {
+	ctx, span := otel.Tracer("").Start(ctx, "Storage.Postgres.CountExpiredEvents")
 	defer span.End()
 
-	_, err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).ExecContext(ctx, queryDeleteProcessedEvents)
+	var count int
+
+	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).GetContext(ctx, &count, queryCountExpiredEvents)
+	if err != nil {
+		return count, trace.Wrapf(
+			span,
+			err,
+			"Storage.Postgres.CountExpiredEvents.GetContext()",
+		)
+	}
+
+	return count, err
+}
+
+func (s *Storage) FetchExpiredEvents(ctx context.Context, batchSize int) (models.Events, error) {
+	ctx, span := otel.Tracer("").Start(ctx, "Storage.Postgres.FetchExpiredEvents")
+	defer span.End()
+
+	var events dto.Events
+
+	err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).SelectContext(ctx, &events, queryFetchExpiredEvents, batchSize)
+	if err != nil {
+		return nil, trace.Wrapf(
+			span,
+			err,
+			"Storage.Postgres.FetchExpiredEvents.SelectContext(batchSize: %d)",
+			batchSize,
+		)
+	}
+
+	return events.ToModel(), err
+}
+
+func (s *Storage) DeleteEventsByIDs(ctx context.Context, ids []int64) error {
+	ctx, span := otel.Tracer("").Start(ctx, "Storage.Postgres.DeleteEventsByIDs")
+	defer span.End()
+
+	_, err := s.ctxGetter.DefaultTrOrDB(ctx, s.db).ExecContext(ctx, queryDeleteEventsByIDs, pq.Int64Array(ids))
 	if err != nil {
 		return trace.Wrapf(
 			span,
 			err,
-			"Storage.Postgres.DeleteProcessedEventsByTTL.ExecContext()",
+			"Storage.Postgres.DeleteEventsByIDs.ExecContext()",
 		)
 	}
 
-	return err
+	return nil
 }

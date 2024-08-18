@@ -4,17 +4,18 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/storage/postgres/errors"
+	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/repository/postgres/errors"
 	"go.opentelemetry.io/otel"
 )
 
-// MapCarrier is a TextMapCarrier that uses a map held in memory as a storage
+// TraceCarrier is a TextMapCarrier that uses a map held in memory as a repository
 // medium for propagated key-value pairs.
 type TraceCarrier map[string]string
 
 func NewTraceCarrierFromContext(ctx context.Context) TraceCarrier {
 	carrier := make(TraceCarrier)
 	otel.GetTextMapPropagator().Inject(ctx, carrier)
+
 	return carrier
 }
 
@@ -34,12 +35,14 @@ func (t TraceCarrier) Keys() []string {
 	for k := range t {
 		keys = append(keys, k)
 	}
+
 	return keys
 }
 
 func (t *TraceCarrier) Context() context.Context {
 	ctx := context.Background()
 	otel.GetTextMapPropagator().Extract(ctx, t)
+
 	return ctx
 }
 

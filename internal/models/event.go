@@ -14,14 +14,15 @@ type Event struct {
 	EntityID       string // preserve order and search purposes
 	IdempotencyKey string // unique
 	Topic          string
+	Key            string
 	Payload        json.RawMessage
 	Context        context.Context
-	CreatedAt      null.Time
+	CreatedAt      time.Time
+	ExpiresAt      time.Time // TTL
 	SentAt         null.Time
-	TTL            time.Duration
 }
 
-type Events []Event // as it is entity we use pointers
+type Events []Event // as it is models we use pointers
 
 func (e Events) IDs() []int64 {
 	return lo.Map(e, func(event Event, _ int) int64 {

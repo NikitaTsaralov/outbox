@@ -1,4 +1,4 @@
-package dto
+package kafka
 
 import (
 	"time"
@@ -10,9 +10,9 @@ import (
 
 const idempotencyKey = "idempotencyKey"
 
-func NewRecordFromModel(e models.Event) *kgo.Record {
+func newRecordFromModel(e models.Event) *kgo.Record {
 	return &kgo.Record{
-		Key:   []byte(e.EntityID), // preserve orders
+		Key:   []byte(e.Key), // preserve orders
 		Value: e.Payload,
 		Headers: []kgo.RecordHeader{
 			{
@@ -32,8 +32,8 @@ func NewRecordFromModel(e models.Event) *kgo.Record {
 	}
 }
 
-func NewRecordsFromModel(e models.Events) []*kgo.Record {
+func newRecordsFromModel(e models.Events) []*kgo.Record {
 	return lo.Map(e, func(item models.Event, _ int) *kgo.Record {
-		return NewRecordFromModel(item)
+		return newRecordFromModel(item)
 	})
 }
