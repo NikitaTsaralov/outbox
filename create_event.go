@@ -21,8 +21,9 @@ type CreateEventCommand struct {
 	CreatedAt      time.Time       // for delayed events or anything u need
 }
 
-func (o Outbox) CreateEventCommandHandler(ctx context.Context, command CreateEventCommand) (int64, error) {
-	ctx, span := otel.Tracer("").Start(ctx, "TransactionalOutbox.CreateEventCommandHandler")
+// CreateEvent is some kind of command handler but simplified for easier usage
+func (o Outbox) CreateEvent(ctx context.Context, command CreateEventCommand) (int64, error) {
+	ctx, span := otel.Tracer("").Start(ctx, "TransactionalOutbox.CreateEvent")
 	defer span.End()
 
 	if command.CreatedAt.IsZero() {

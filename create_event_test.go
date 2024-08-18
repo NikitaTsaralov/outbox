@@ -31,7 +31,7 @@ func (s *OutboxTestSuite) Test_CreateEvent() {
 
 	for _, test := range tests {
 		s.Run(test.name, func() {
-			id, err := s.outbox.CreateEventCommandHandler(context.Background(), test.data)
+			id, err := s.outbox.CreateEvent(context.Background(), test.data)
 			s.Require().Nil(err)
 			s.Require().NotNil(id)
 

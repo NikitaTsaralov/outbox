@@ -73,7 +73,7 @@ func main() {
 	defer cancel()
 
 	// now u can create single event
-	_, err := outbox.CreateEventCommandHandler(ctxWithCancel, transactionalOutbox.CreateEventCommand{
+	_, err := outbox.CreateEvent(ctxWithCancel, transactionalOutbox.CreateEventCommand{
 		EntityID:       uuid.NewString(),
 		IdempotencyKey: uuid.NewString(),
 		Payload:        json.RawMessage(`{"a": "b"}`),

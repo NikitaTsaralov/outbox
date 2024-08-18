@@ -12,6 +12,7 @@ import (
 
 type BatchCreateEventsCommand []CreateEventCommand
 
+// BatchCreateEvents is some kind of command handler but simplified for easier usage
 func (o Outbox) BatchCreateEvents(
 	ctx context.Context,
 	command BatchCreateEventsCommand,
