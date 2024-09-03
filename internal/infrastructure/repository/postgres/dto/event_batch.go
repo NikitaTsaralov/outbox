@@ -3,8 +3,8 @@ package dto
 import (
 	"time"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/models"
-	jsonUtils "github.com/NikitaTsaralov/transactional-outbox/pkg/jsonutils"
+	"github.com/NikitaTsaralov/outbox/internal/models"
+	jsonUtils "github.com/NikitaTsaralov/outbox/pkg/jsonutils"
 	"github.com/jackc/pgtype"
 )
 

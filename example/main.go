@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	transactionalOutbox "github.com/NikitaTsaralov/transactional-outbox"
+	transactionalOutbox "github.com/NikitaTsaralov/outbox"
 	"github.com/NikitaTsaralov/utils/logger"
 	trmsqlx "github.com/avito-tech/go-transaction-manager/sqlx"
 	"github.com/avito-tech/go-transaction-manager/trm/manager"

@@ -3,9 +3,9 @@ package postgres
 import (
 	"context"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/repository/postgres/dto"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/models"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/repository"
+	"github.com/NikitaTsaralov/outbox/internal/infrastructure/repository/postgres/dto"
+	"github.com/NikitaTsaralov/outbox/internal/models"
+	"github.com/NikitaTsaralov/outbox/internal/repository"
 	"github.com/NikitaTsaralov/utils/utils/trace"
 	txManager "github.com/avito-tech/go-transaction-manager/sqlx"
 	"github.com/jmoiron/sqlx"

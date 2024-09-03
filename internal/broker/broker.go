@@ -3,7 +3,7 @@ package broker
 import (
 	"context"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/models"
+	"github.com/NikitaTsaralov/outbox/internal/models"
 )
 
 type Broker interface {

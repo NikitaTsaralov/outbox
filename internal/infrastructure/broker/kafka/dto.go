@@ -3,7 +3,7 @@ package kafka
 import (
 	"time"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/models"
+	"github.com/NikitaTsaralov/outbox/internal/models"
 	"github.com/samber/lo"
 	"github.com/twmb/franz-go/pkg/kgo"
 )

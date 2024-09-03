@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/repository/postgres/dto"
+	"github.com/NikitaTsaralov/outbox/internal/infrastructure/repository/postgres/dto"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )

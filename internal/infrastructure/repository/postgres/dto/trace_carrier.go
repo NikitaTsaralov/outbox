@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/repository/postgres/errors"
+	"github.com/NikitaTsaralov/outbox/internal/infrastructure/repository/postgres/errors"
 	"go.opentelemetry.io/otel"
 )
 

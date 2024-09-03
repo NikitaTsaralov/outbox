@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/repository/postgres/dto"
+	"github.com/NikitaTsaralov/outbox/internal/infrastructure/repository/postgres/dto"
 )
 
 func (s *OutboxTestSuite) Test_RunMessageRelay() {

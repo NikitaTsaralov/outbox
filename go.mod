@@ -1,4 +1,4 @@
-module github.com/NikitaTsaralov/transactional-outbox
+module github.com/NikitaTsaralov/outbox
 
 go 1.22.2
 

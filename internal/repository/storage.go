@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/models"
+	"github.com/NikitaTsaralov/outbox/internal/models"
 )
 
 type OutboxStorage interface {

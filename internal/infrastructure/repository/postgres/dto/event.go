@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/models"
+	"github.com/NikitaTsaralov/outbox/internal/models"
 	"github.com/guregu/null"
 	"github.com/samber/lo"
 )

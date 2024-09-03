@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/models"
+	"github.com/NikitaTsaralov/outbox/internal/models"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel"

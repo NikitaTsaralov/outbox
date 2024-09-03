@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/NikitaTsaralov/transactional-outbox/internal/models"
+	"github.com/NikitaTsaralov/outbox/internal/models"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.opentelemetry.io/otel"
 )

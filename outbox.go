@@ -1,10 +1,10 @@
 package outbox
 
 import (
-	"github.com/NikitaTsaralov/transactional-outbox/internal/broker"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/broker/kafka"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/infrastructure/repository/postgres"
-	"github.com/NikitaTsaralov/transactional-outbox/internal/repository"
+	"github.com/NikitaTsaralov/outbox/internal/broker"
+	"github.com/NikitaTsaralov/outbox/internal/infrastructure/broker/kafka"
+	"github.com/NikitaTsaralov/outbox/internal/infrastructure/repository/postgres"
+	"github.com/NikitaTsaralov/outbox/internal/repository"
 	txManager "github.com/avito-tech/go-transaction-manager/sqlx"
 	"github.com/avito-tech/go-transaction-manager/trm/manager"
 	"github.com/jmoiron/sqlx"
